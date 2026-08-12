@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vehicle Riding Log</title>
+    <!-- Excel & Direct PDF Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #cbd5e1;
+            --off-day-bg: #fef2f2;
+            --off-day-text: #dc2626;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding-bottom: 75px;
+        }
+
+        .app-bar {
+            background-color: var(--primary);
+            color: white;
+            padding: 16px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .container {
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+
+        .form-group { margin-bottom: 14px; }
+
+        label {
+            display: block;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background-color: #fff;
+            color: var(--text);
+            outline: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-clear { background-color: var(--danger); box-shadow: 0 3px 6px rgba(239, 68, 68, 0.3); }
+        .btn-excel { background-color: #166534; box-shadow: 0 3px 6px rgba(22, 101, 52, 0.3); }
+        .btn-pdf { background-color: #dc2626; box-shadow: 0 3px 6px rgba(220, 38, 38, 0.3); }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: white;
+            padding: 12px 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        td {
+            padding: 8px 6px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        td input {
+            padding: 10px 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-align: center;
+            border-radius: 6px;
+            width: 100%;
+            min-height: 42px;
+            border: 1px solid #94a3b8;
+        }
+
+        .end-km { min-width: 115px !important; }
+        .start-km { min-width: 90px; }
+        .readonly-input { background-color: #f1f5f9; color: var(--text-muted); }
+        .off-day-row { background-color: var(--off-day-bg); color: var(--off-day-text); }
+        .off-day-row input { background-color: #fee2e2; color: var(--off-day-text); }
+
+        .summary-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+        }
+
+        .summary-card .val {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 60px;
+            background: #ffffff;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .nav-item.active { color: var(--primary); font-weight: 700; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="app-bar">Vehicle Riding Log</div>
+
+<div class="container">
+    <!-- Step 1 -->
+    <div id="step1" class="card">
+        <div class="card-title">1. Driver & Vehicle Info</div>
+        <div class="form-group"><label>Full Name *</label><input type="text" id="custName" value="BHARAT BHIMJIBHAI CHAU"></div>
+        <div class="form-group"><label>Address</label><input type="text" id="custAddress" value="SHREEJI SOCIETY, SIKKA, DIST. JAMNAGAR"></div>
+        <div class="form-group"><label>Mobile Number</label><input type="tel" id="custPhone" value="9904754721"></div>
+        <div class="form-group"><label>Email Address</label><input type="email" id="custEmail" value="bharatbhimjibhaichau@gmail.com"></div>
+        <div class="form-group"><label>ID / Employee No.</label><input type="text" id="custID" value="13"></div>
+        <div class="form-group"><label>Vehicle Number *</label><input type="text" id="vehicleNo" value="GJ 10 TY 9855"></div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button class="btn btn-clear" style="width: 35%;" onclick="clearAllData()">Clear All</button>
+            <button class="btn" style="width: 65%;" onclick="nextStep(2)">Next: Config &gt;</button>
+        </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div id="step2" class="card hidden">
+        <div class="card-title">2. Month & Work Week Config</div>
+        <div class="form-group"><label>Riding Month *</label><input type="month" id="rideMonth" value="2026-08"></div>
+        <div class="form-group"><label>Default Daily Time *</label><input type="text" id="rideTime" value="15hr"></div>
+        <div class="form-group">
+            <label>Weekly Off Pattern *</label>
+            <select id="workDays">
+                <option value="sun">Sunday Off</option>
+                <option value="sat-sun">Saturday & Sunday Off</option>
+                <option value="none">No Off Days</option>
+            </select>
+        </div>
+        <div class="form-group"><label>Starting Kilometer *</label><input type="number" id="initialKm" value="1500"></div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button class="btn" style="background: var(--text-muted); width: 35%;" onclick="nextStep(1)">&lt; Back</button>
+            <button class="btn" style="width: 65%;" onclick="generateSheet()">Generate Log</button>
+        </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div id="step3" class="hidden">
+        <div class="summary-card">
+            <h4>Total Monthly Distance</h4>
+            <div class="val"><span id="totalDistance">0</span> <span style="font-size: 1.1rem;">KMS</span></div>
+        </div>
+
+        <div class="card" style="padding: 10px; margin-top: 16px;">
+            <div class="card-title">Monthly Riding Log</div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr><th>SNO</th><th>DATE</th><th>START</th><th>END</th><th>KMS</th><th>TIME</th><th>OT</th></tr>
+                    </thead>
+                    <tbody id="sheetBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-excel" onclick="exportExcel()">Excel</button>
+            <button class="btn btn-pdf" id="pdfBtn" onclick="exportPDF()">Download PDF</button>
+        </div>
+        <button class="btn" style="background: var(--text-muted); margin-top: 12px;" onclick="nextStep(2)">&lt; Modify Settings</button>
+    </div>
+</div>
+
+<div class="bottom-nav">
+    <div class="nav-item active" onclick="nextStep(1)"><span>👤</span><span>Info</span></div>
+    <div class="nav-item" onclick="nextStep(2)"><span>⚙️</span><span>Config</span></div>
+    <div class="nav-item" onclick="showLogStep()"><span>📋</span><span>Log Sheet</span></div>
+</div>
+
+<script>
+    function clearAllData() {
+        if (confirm("Are you sure you want to clear all input values?")) {
+            document.getElementById('custName').value = '';
+            document.getElementById('custAddress').value = '';
+            document.getElementById('custPhone').value = '';
+            document.getElementById('custEmail').value = '';
+            document.getElementById('custID').value = '';
+            document.getElementById('vehicleNo').value = '';
+            document.getElementById('initialKm').value = '';
+            document.getElementById('rideTime').value = '';
+            document.getElementById('sheetBody').innerHTML = '';
+            document.getElementById('totalDistance').textContent = '0';
+        }
+    }
+
+    function nextStep(step) {
+        document.getElementById('step1').classList.add('hidden');
+        document.getElementById('step2').classList.add('hidden');
+        document.getElementById('step3').classList.add('hidden');
+        document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+
+        if (step === 1) {
+            document.getElementById('step1').classList.remove('hidden');
+            document.querySelectorAll('.nav-item')[0].classList.add('active');
+        } else if (step === 2) {
+            document.getElementById('step2').classList.remove('hidden');
+            document.querySelectorAll('.nav-item')[1].classList.add('active');
+        } else if (step === 3) {
+            document.getElementById('step3').classList.remove('hidden');
+            document.querySelectorAll('.nav-item')[2].classList.add('active');
+        }
+    }
+
+    function showLogStep() {
+        if(document.getElementById('sheetBody').children.length === 0) generateSheet();
+        else nextStep(3);
+    }
+
+    function generateSheet() {
+        const monthVal = document.getElementById('rideMonth').value;
+        const rideTimeVal = document.getElementById('rideTime').value.trim() || '15hr';
+        if (!monthVal) return alert('Select Month');
+
+        const workDaysPattern = document.getElementById('workDays').value;
+        const [year, month] = monthVal.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const initialKm = parseFloat(document.getElementById('initialKm').value) || 0;
+
+        const tbody = document.getElementById('sheetBody');
+        tbody.innerHTML = '';
+        let sno = 1;
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateObj = new Date(year, month - 1, day);
+            const dayOfWeek = dateObj.getDay();
+            let isOff = (workDaysPattern === 'sun' && dayOfWeek === 0) || (workDaysPattern === 'sat-sun' && (dayOfWeek === 0 || dayOfWeek === 6));
+            let label = dayOfWeek === 0 ? 'SUNDAY' : 'SATURDAY';
+
+            const dd = String(day).padStart(2, '0');
+            const mm = String(month).padStart(2, '0');
+
+            const row = document.createElement('tr');
+            if (isOff) row.classList.add('off-day-row');
+
+            row.innerHTML = `
+                <td>${sno++}</td>
+                <td>${dd}/${mm}/${year}</td>
+                <td><input type="number" class="start-km ${day > 1 ? 'readonly-input' : ''}" value="${day === 1 ? initialKm : ''}" ${day > 1 ? 'readonly' : ''} oninput="updateSheet()"></td>
+                <td><input type="number" class="end-km" placeholder="${isOff ? label : 'End'}" oninput="updateSheet()"></td>
+                <td class="diff-km">0</td>
+                <td><input type="text" class="ride-time-input" value="${isOff ? label : rideTimeVal}"></td>
+                <td><input type="text" class="ot-val"></td>
+            `;
+            tbody.appendChild(row);
+        }
+        nextStep(3);
+        updateSheet();
+    }
+
+    function updateSheet() {
+        const rows = document.querySelectorAll('#sheetBody tr');
+        let grandTotal = 0;
+
+        rows.forEach((row, idx) => {
+            const startInput = row.querySelector('.start-km');
+            const endInput = row.querySelector('.end-km');
+            const diffCell = row.querySelector('.diff-km');
+            const timeInput = row.querySelector('.ride-time-input');
+
+            if (idx > 0) startInput.value = rows[idx - 1].querySelector('.end-km').value || "";
+
+            let start = parseFloat(startInput.value);
+            let end = parseFloat(endInput.value);
+
+            if (timeInput.value === 'SUNDAY' || timeInput.value === 'SATURDAY') {
+                if (!isNaN(start)) endInput.value = start;
+                diffCell.textContent = "0";
+            } else if (!isNaN(start) && !isNaN(end)) {
+                let diff = Math.max(0, end - start);
+                diffCell.textContent = diff;
+                grandTotal += diff;
+            } else {
+                diffCell.textContent = "0";
+            }
+        });
+        document.getElementById('totalDistance').textContent = grandTotal;
+    }
+
+    // SAFE DUAL DOWNLOAD HANDLER (Web + Mobile App WebView)
+    async function downloadForWebAndApp(doc, fileName) {
+        const pdfBlob = doc.output('blob');
+
+        // 1. Mobile Web Share API (Triggers Android native share/save prompt safely)
+        if (navigator.canShare) {
+            try {
+                const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+                if (navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: fileName
+                    });
+                    return;
+                }
+            } catch (err) {
+                console.warn('Share API dismissed or failed, switching to fallback.', err);
+            }
+        }
+
+        // 2. Standard Blob Link Download (Safe for Web Browsers & WebViews)
+        try {
+            const blobUrl = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = fileName;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+            }, 2000);
+        } catch (e) {
+            alert('Download starting...');
+        }
+    }
+
+    async function exportPDF() {
+        const btn = document.getElementById('pdfBtn');
+        btn.textContent = 'Generating...';
+        btn.disabled = true;
+
+        try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const name = document.getElementById('custName').value;
+            const phone = document.getElementById('custPhone').value;
+            const email = document.getElementById('custEmail').value;
+            const address = document.getElementById('custAddress').value;
+            const id = document.getElementById('custID').value;
+            const vehicle = document.getElementById('vehicleNo').value;
+            const month = document.getElementById('rideMonth').value;
+            const totalDist = document.getElementById('totalDistance').textContent;
+
+            // Header Section
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.text(name, 105, 10, { align: "center" });
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.text(address, 105, 14, { align: "center" });
+
+            doc.text(`Mobile: ${phone}`, 12, 18);
+            doc.text(`Email: ${email}`, 12, 22);
+
+            doc.text(`Car No: ${vehicle}`, 198, 18, { align: "right" });
+            doc.text(`ID: ${id}  |  Month: ${month}`, 198, 22, { align: "right" });
+
+            doc.setLineWidth(0.3);
+            doc.line(12, 24, 198, 24);
+
+            // Extract table rows
+            const tableData = [];
+            document.querySelectorAll('#sheetBody tr').forEach(row => {
+                const cells = row.querySelectorAll('td');
+                tableData.push([
+                    cells[0].textContent,
+                    cells[1].textContent,
+                    row.querySelector('.start-km').value || '',
+                    row.querySelector('.end-km').value || '',
+                    cells[4].textContent,
+                    row.querySelector('.ride-time-input').value || '',
+                    row.querySelector('.ot-val').value || ''
+                ]);
+            });
+
+            // Build PDF Table
+            doc.autoTable({
+                startY: 26,
+                head: [['SNO', 'DATE', 'START', 'END', 'KMS', 'TIME', 'OT']],
+                body: tableData,
+                foot: [['', 'TOTAL DISTANCE', '', '', totalDist, '', '']],
+                theme: 'grid',
+                styles: {
+                    fontSize: 7,
+                    cellPadding: 1.1,
+                    halign: 'center',
+                    textColor: [0, 0, 0],
+                    lineColor: [100, 100, 100],
+                    lineWidth: 0.1
+                },
+                headStyles: {
+                    fillColor: [225, 232, 240],
+                    textColor: [0, 0, 0],
+                    fontStyle: 'bold'
+                },
+                footStyles: {
+                    fillColor: [240, 240, 240],
+                    textColor: [0, 0, 0],
+                    fontStyle: 'bold'
+                },
+                columnStyles: {
+                    0: { cellWidth: 10 },
+                    1: { cellWidth: 25 },
+                    2: { cellWidth: 24 },
+                    3: { cellWidth: 24 },
+                    4: { cellWidth: 22, fontStyle: 'bold' },
+                    5: { cellWidth: 40 },
+                    6: { cellWidth: 41 }
+                },
+                margin: { top: 5, bottom: 5, left: 12, right: 12 }
+            });
+
+            await downloadForWebAndApp(doc, `Riding_Log_${month}.pdf`);
+        } catch (err) {
+            alert('PDF generation error: ' + err.message);
+        } finally {
+            btn.textContent = 'Download PDF';
+            btn.disabled = false;
+        }
+    }
+
+    async function exportExcel() {
+        const monthVal = document.getElementById('rideMonth').value;
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Log');
+        worksheet.addRow([document.getElementById('custName').value]);
+        worksheet.addRow(['SNO', 'DATE', 'START', 'END', 'KMS', 'TIME', 'OT']);
+        
+        document.querySelectorAll('#sheetBody tr').forEach(row => {
+            const cells = row.querySelectorAll('td');
+            worksheet.addRow([
+                cells[0].textContent,
+                cells[1].textContent,
+                parseFloat(row.querySelector('.start-km').value) || 0,
+                parseFloat(row.querySelector('.end-km').value) || 0,
+                parseFloat(cells[4].textContent) || 0,
+                row.querySelector('.ride-time-input').value,
+                row.querySelector('.ot-val').value
+            ]);
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        
+        if (navigator.canShare) {
+            try {
+                const file = new File([blob], `Riding_Log_${monthVal}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                if (navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: `Riding_Log_${monthVal}.xlsx` });
+                    return;
+                }
+            } catch (e) {}
+        }
+
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `Riding_Log_${monthVal}.xlsx`;
+        a.click();
+    }
+</script>
+</body>
+</html>
