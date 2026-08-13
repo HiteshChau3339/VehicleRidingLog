@@ -18,8 +18,6 @@
             --text: #1e293b;
             --text-muted: #64748b;
             --border: #cbd5e1;
-            --off-day-bg: #fef2f2;
-            --off-day-text: #dc2626;
             --danger: #ef4444;
         }
 
@@ -130,6 +128,7 @@
             padding: 12px 8px;
             font-weight: 600;
             text-align: center;
+            vertical-align: middle;
         }
 
         td {
@@ -153,8 +152,6 @@
         .end-km { min-width: 115px !important; }
         .start-km { min-width: 90px; }
         .readonly-input { background-color: #f1f5f9; color: var(--text-muted); }
-        .off-day-row { background-color: var(--off-day-bg); color: var(--off-day-text); }
-        .off-day-row input { background-color: #fee2e2; color: var(--off-day-text); }
 
         .summary-card {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
@@ -278,6 +275,8 @@
 </div>
 
 <script>
+    const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+
     function clearAllData() {
         if (confirm("Are you sure you want to clear all input values?")) {
             document.getElementById('custName').value = '';
@@ -333,22 +332,27 @@
         for (let day = 1; day <= daysInMonth; day++) {
             const dateObj = new Date(year, month - 1, day);
             const dayOfWeek = dateObj.getDay();
+            const dayName = dayNames[dayOfWeek];
             let isOff = (workDaysPattern === 'sun' && dayOfWeek === 0) || (workDaysPattern === 'sat-sun' && (dayOfWeek === 0 || dayOfWeek === 6));
-            let label = dayOfWeek === 0 ? 'SUNDAY' : 'SATURDAY';
 
             const dd = String(day).padStart(2, '0');
             const mm = String(month).padStart(2, '0');
+            
+            const dateDisplay = isOff ? `${dd}/${mm}/${year} (${dayName})` : `${dd}/${mm}/${year}`;
 
             const row = document.createElement('tr');
-            if (isOff) row.classList.add('off-day-row');
+            if (isOff) row.dataset.isOff = "true";
+
+            // Single merged Time cell across all days
+            const timeTd = day === 1 ? `<td rowspan="${daysInMonth}" style="vertical-align: middle; text-align: center; background: white;"><input type="text" id="commonRideTime" class="ride-time-input" value="${rideTimeVal}"></td>` : '';
 
             row.innerHTML = `
                 <td>${sno++}</td>
-                <td>${dd}/${mm}/${year}</td>
+                <td>${dateDisplay}</td>
                 <td><input type="number" class="start-km ${day > 1 ? 'readonly-input' : ''}" value="${day === 1 ? initialKm : ''}" ${day > 1 ? 'readonly' : ''} oninput="updateSheet()"></td>
-                <td><input type="number" class="end-km" placeholder="${isOff ? label : 'End'}" oninput="updateSheet()"></td>
+                <td><input type="number" class="end-km" placeholder="${isOff ? dayName : 'End'}" oninput="updateSheet()"></td>
                 <td class="diff-km">0</td>
-                <td><input type="text" class="ride-time-input" value="${isOff ? label : rideTimeVal}"></td>
+                ${timeTd}
                 <td><input type="text" class="ot-val"></td>
             `;
             tbody.appendChild(row);
@@ -365,14 +369,14 @@
             const startInput = row.querySelector('.start-km');
             const endInput = row.querySelector('.end-km');
             const diffCell = row.querySelector('.diff-km');
-            const timeInput = row.querySelector('.ride-time-input');
+            const isOff = row.dataset.isOff === "true";
 
             if (idx > 0) startInput.value = rows[idx - 1].querySelector('.end-km').value || "";
 
             let start = parseFloat(startInput.value);
             let end = parseFloat(endInput.value);
 
-            if (timeInput.value === 'SUNDAY' || timeInput.value === 'SATURDAY') {
+            if (isOff) {
                 if (!isNaN(start)) endInput.value = start;
                 diffCell.textContent = "0";
             } else if (!isNaN(start) && !isNaN(end)) {
@@ -390,7 +394,6 @@
     async function downloadForWebAndApp(doc, fileName) {
         const pdfBlob = doc.output('blob');
 
-        // 1. Mobile Web Share API (Triggers Android native share/save prompt safely)
         if (navigator.canShare) {
             try {
                 const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
@@ -406,7 +409,6 @@
             }
         }
 
-        // 2. Standard Blob Link Download (Safe for Web Browsers & WebViews)
         try {
             const blobUrl = URL.createObjectURL(pdfBlob);
             const a = document.createElement('a');
@@ -445,6 +447,7 @@
             const vehicle = document.getElementById('vehicleNo').value;
             const month = document.getElementById('rideMonth').value;
             const totalDist = document.getElementById('totalDistance').textContent;
+            const commonTime = document.getElementById('commonRideTime')?.value || '';
 
             // Header Section
             doc.setFont("helvetica", "bold");
@@ -465,21 +468,39 @@
             doc.line(12, 24, 198, 24);
 
             // Extract table rows
+            const rows = document.querySelectorAll('#sheetBody tr');
+            const totalRows = rows.length;
             const tableData = [];
-            document.querySelectorAll('#sheetBody tr').forEach(row => {
+
+            rows.forEach((row, idx) => {
                 const cells = row.querySelectorAll('td');
-                tableData.push([
-                    cells[0].textContent,
-                    cells[1].textContent,
-                    row.querySelector('.start-km').value || '',
-                    row.querySelector('.end-km').value || '',
-                    cells[4].textContent,
-                    row.querySelector('.ride-time-input').value || '',
-                    row.querySelector('.ot-val').value || ''
-                ]);
+                const start = row.querySelector('.start-km')?.value || '';
+                const end = row.querySelector('.end-km')?.value || '';
+                const ot = row.querySelector('.ot-val')?.value || '';
+
+                if (idx === 0) {
+                    tableData.push([
+                        cells[0].textContent,
+                        cells[1].textContent,
+                        start,
+                        end,
+                        cells[4].textContent,
+                        { content: commonTime, rowSpan: totalRows, styles: { halign: 'center', valign: 'middle' } },
+                        ot
+                    ]);
+                } else {
+                    tableData.push([
+                        cells[0].textContent,
+                        cells[1].textContent,
+                        start,
+                        end,
+                        cells[4].textContent,
+                        ot
+                    ]);
+                }
             });
 
-            // Build PDF Table
+            // Build PDF Table with Centered Alignment & Uniform Styling
             doc.autoTable({
                 startY: 26,
                 head: [['SNO', 'DATE', 'START', 'END', 'KMS', 'TIME', 'OT']],
@@ -490,6 +511,7 @@
                     fontSize: 7,
                     cellPadding: 1.1,
                     halign: 'center',
+                    valign: 'middle',
                     textColor: [0, 0, 0],
                     lineColor: [100, 100, 100],
                     lineWidth: 0.1
@@ -497,24 +519,38 @@
                 headStyles: {
                     fillColor: [225, 232, 240],
                     textColor: [0, 0, 0],
-                    fontStyle: 'bold'
+                    fontStyle: 'bold',
+                    halign: 'center',
+                    valign: 'middle'
                 },
                 footStyles: {
                     fillColor: [240, 240, 240],
                     textColor: [0, 0, 0],
-                    fontStyle: 'bold'
+                    fontStyle: 'bold',
+                    halign: 'center',
+                    valign: 'middle'
                 },
                 columnStyles: {
-                    0: { cellWidth: 10 },
-                    1: { cellWidth: 25 },
-                    2: { cellWidth: 24 },
-                    3: { cellWidth: 24 },
-                    4: { cellWidth: 22, fontStyle: 'bold' },
-                    5: { cellWidth: 40 },
-                    6: { cellWidth: 41 }
+                    0: { cellWidth: 10, halign: 'center', valign: 'middle' },
+                    1: { cellWidth: 28, halign: 'center', valign: 'middle' },
+                    2: { cellWidth: 23, halign: 'center', valign: 'middle' },
+                    3: { cellWidth: 23, halign: 'center', valign: 'middle' },
+                    4: { cellWidth: 20, fontStyle: 'bold', halign: 'center', valign: 'middle' },
+                    5: { cellWidth: 38, halign: 'center', valign: 'middle' },
+                    6: { cellWidth: 44, halign: 'center', valign: 'middle' }
                 },
-                margin: { top: 5, bottom: 5, left: 12, right: 12 }
+                margin: { top: 5, bottom: 20, left: 12, right: 12 }
             });
+
+            // Checked By Section
+            const finalY = doc.lastAutoTable.finalY + 8;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text("Checked by:", 12, finalY + 5);
+
+            // Draw Text Box / Signature Box
+            doc.setLineWidth(0.3);
+            doc.rect(34, finalY, 55, 8);
 
             await downloadForWebAndApp(doc, `Riding_Log_${month}.pdf`);
         } catch (err) {
@@ -529,20 +565,40 @@
         const monthVal = document.getElementById('rideMonth').value;
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Log');
+
         worksheet.addRow([document.getElementById('custName').value]);
         worksheet.addRow(['SNO', 'DATE', 'START', 'END', 'KMS', 'TIME', 'OT']);
-        
-        document.querySelectorAll('#sheetBody tr').forEach(row => {
+
+        const commonTime = document.getElementById('commonRideTime')?.value || '';
+        const rows = document.querySelectorAll('#sheetBody tr');
+        const totalRows = rows.length;
+
+        rows.forEach((row, idx) => {
             const cells = row.querySelectorAll('td');
+
             worksheet.addRow([
                 cells[0].textContent,
                 cells[1].textContent,
                 parseFloat(row.querySelector('.start-km').value) || 0,
                 parseFloat(row.querySelector('.end-km').value) || 0,
                 parseFloat(cells[4].textContent) || 0,
-                row.querySelector('.ride-time-input').value,
+                idx === 0 ? commonTime : '',
                 row.querySelector('.ot-val').value
             ]);
+        });
+
+        // Merge Time column in Excel
+        if (totalRows > 0) {
+            const startRow = 3;
+            const endRow = 2 + totalRows;
+            worksheet.mergeCells(`F${startRow}:F${endRow}`);
+        }
+
+        // Align all Excel cells horizontally and vertically centered
+        worksheet.eachRow((excelRow) => {
+            excelRow.eachCell((cell) => {
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            });
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
