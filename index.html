@@ -8,7 +8,8 @@
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
         :root {
             --primary: #2563eb;
@@ -18,6 +19,8 @@
             --text: #1e293b;
             --text-muted: #64748b;
             --border: #cbd5e1;
+            --off-day-bg: #fef2f2;
+            --off-day-text: #dc2626;
             --danger: #ef4444;
         }
 
@@ -50,7 +53,7 @@
 
         .container {
             padding: 16px;
-            max-width: 600px;
+            max-width: 650px;
             margin: 0 auto;
         }
 
@@ -128,7 +131,6 @@
             padding: 12px 8px;
             font-weight: 600;
             text-align: center;
-            vertical-align: middle;
         }
 
         td {
@@ -149,9 +151,12 @@
             border: 1px solid #94a3b8;
         }
 
-        .end-km { min-width: 115px !important; }
+        .end-km { min-width: 110px !important; }
+        .daily-km { min-width: 90px !important; background-color: #eff6ff; }
         .start-km { min-width: 90px; }
         .readonly-input { background-color: #f1f5f9; color: var(--text-muted); }
+        .off-day-row { background-color: var(--off-day-bg); color: var(--off-day-text); }
+        .off-day-row input { background-color: #fee2e2; color: var(--off-day-text); }
 
         .summary-card {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
@@ -208,11 +213,11 @@
     <div id="step1" class="card">
         <div class="card-title">1. Driver & Vehicle Info</div>
         <div class="form-group"><label>Full Name *</label><input type="text" id="custName" value="BHARAT BHIMJIBHAI CHAU"></div>
-        <div class="form-group"><label>Address</label><input type="text" id="custAddress" value="SHREEJI, SIKKA, DIST. JAMNAGAR"></div>
-        <div class="form-group"><label>Mobile Number</label><input type="tel" id="custPhone" value="9904888888"></div>
-        <div class="form-group"><label>Email Address</label><input type="email" id="custEmail" value="bharat@gmail.com"></div>
+        <div class="form-group"><label>Address</label><input type="text" id="custAddress" value="SHREEJI SOCIETY, SIKKA, DIST. JAMNAGAR"></div>
+        <div class="form-group"><label>Mobile Number</label><input type="tel" id="custPhone" value="9904754721"></div>
+        <div class="form-group"><label>Email Address</label><input type="email" id="custEmail" value="bharatbhimjibhaichau@gmail.com"></div>
         <div class="form-group"><label>ID / Employee No.</label><input type="text" id="custID" value="13"></div>
-        <div class="form-group"><label>Vehicle Number *</label><input type="text" id="vehicleNo" value="GJ 10 TY 1855"></div>
+        <div class="form-group"><label>Vehicle Number *</label><input type="text" id="vehicleNo" value="GJ 10 TY 9855"></div>
         
         <div style="display: flex; gap: 10px; margin-top: 10px;">
             <button class="btn btn-clear" style="width: 35%;" onclick="clearAllData()">Clear All</button>
@@ -253,7 +258,7 @@
             <div class="table-responsive">
                 <table>
                     <thead>
-                        <tr><th>SNO</th><th>DATE</th><th>START</th><th>END</th><th>KMS</th><th>TIME</th><th>OT</th></tr>
+                        <tr><th>SNO</th><th>DATE</th><th>START</th><th>DAILY RUNNING</th><th>END</th><th>KMS</th><th>TIME</th><th>OT</th></tr>
                     </thead>
                     <tbody id="sheetBody"></tbody>
                 </table>
@@ -275,8 +280,6 @@
 </div>
 
 <script>
-    const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-
     function clearAllData() {
         if (confirm("Are you sure you want to clear all input values?")) {
             document.getElementById('custName').value = '';
@@ -332,27 +335,28 @@
         for (let day = 1; day <= daysInMonth; day++) {
             const dateObj = new Date(year, month - 1, day);
             const dayOfWeek = dateObj.getDay();
-            const dayName = dayNames[dayOfWeek];
+            const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
             let isOff = (workDaysPattern === 'sun' && dayOfWeek === 0) || (workDaysPattern === 'sat-sun' && (dayOfWeek === 0 || dayOfWeek === 6));
+            let label = dayOfWeek === 0 ? 'SUNDAY' : 'SATURDAY';
 
             const dd = String(day).padStart(2, '0');
             const mm = String(month).padStart(2, '0');
+            const formattedDate = `${dd}/${mm}/${year}`;
             
-            const dateDisplay = isOff ? `${dd}/${mm}/${year} (${dayName})` : `${dd}/${mm}/${year}`;
+            // If Off Day: show both date & weekday name. Otherwise: show date only.
+            const dateCellText = isOff ? `${formattedDate} (${dayName})` : formattedDate;
 
             const row = document.createElement('tr');
-            if (isOff) row.dataset.isOff = "true";
-
-            // Single merged Time cell across all days
-            const timeTd = day === 1 ? `<td rowspan="${daysInMonth}" style="vertical-align: middle; text-align: center; background: white;"><input type="text" id="commonRideTime" class="ride-time-input" value="${rideTimeVal}"></td>` : '';
+            if (isOff) row.classList.add('off-day-row');
 
             row.innerHTML = `
                 <td>${sno++}</td>
-                <td>${dateDisplay}</td>
-                <td><input type="number" class="start-km ${day > 1 ? 'readonly-input' : ''}" value="${day === 1 ? initialKm : ''}" ${day > 1 ? 'readonly' : ''} oninput="updateSheet()"></td>
-                <td><input type="number" class="end-km" placeholder="${isOff ? dayName : 'End'}" oninput="updateSheet()"></td>
+                <td>${dateCellText}</td>
+                <td><input type="number" class="start-km ${day > 1 ? 'readonly-input' : ''}" value="${day === 1 ? initialKm : ''}" ${day > 1 ? 'readonly' : ''} oninput="updateSheet(this, 'start')"></td>
+                <td><input type="number" class="daily-km" placeholder="${isOff ? '0' : 'KM'}" oninput="updateSheet(this, 'daily')"></td>
+                <td><input type="number" class="end-km" placeholder="${isOff ? label : 'End'}" oninput="updateSheet(this, 'end')"></td>
                 <td class="diff-km">0</td>
-                ${timeTd}
+                <td><input type="text" class="ride-time-input" value="${isOff ? label : rideTimeVal}"></td>
                 <td><input type="text" class="ot-val"></td>
             `;
             tbody.appendChild(row);
@@ -361,24 +365,66 @@
         updateSheet();
     }
 
-    function updateSheet() {
+    function updateSheet(triggerInput = null, sourceType = '') {
         const rows = document.querySelectorAll('#sheetBody tr');
         let grandTotal = 0;
 
         rows.forEach((row, idx) => {
             const startInput = row.querySelector('.start-km');
+            const dailyInput = row.querySelector('.daily-km');
             const endInput = row.querySelector('.end-km');
             const diffCell = row.querySelector('.diff-km');
-            const isOff = row.dataset.isOff === "true";
+            const timeInput = row.querySelector('.ride-time-input');
 
-            if (idx > 0) startInput.value = rows[idx - 1].querySelector('.end-km').value || "";
+            // Auto cascade start KM from previous day's End KM
+            if (idx > 0) {
+                startInput.value = rows[idx - 1].querySelector('.end-km').value || "";
+            }
 
             let start = parseFloat(startInput.value);
+
+            if (timeInput.value === 'SUNDAY' || timeInput.value === 'SATURDAY') {
+                if (triggerInput === dailyInput || triggerInput === endInput) {
+                    // allow override if user types explicitly on off days
+                } else {
+                    if (!isNaN(start)) {
+                        endInput.value = start;
+                        dailyInput.value = "0";
+                    }
+                }
+            }
+
+            // Sync Daily Running vs End KM based on user actions
+            if (triggerInput === dailyInput && row.contains(dailyInput)) {
+                let dailyVal = parseFloat(dailyInput.value);
+                if (!isNaN(start) && !isNaN(dailyVal)) {
+                    endInput.value = start + dailyVal;
+                }
+            } else if (triggerInput === endInput && row.contains(endInput)) {
+                let endVal = parseFloat(endInput.value);
+                if (!isNaN(start) && !isNaN(endVal)) {
+                    dailyInput.value = Math.max(0, endVal - start);
+                }
+            } else {
+                let dailyVal = parseFloat(dailyInput.value);
+                let endVal = parseFloat(endInput.value);
+                if (!isNaN(start) && !isNaN(dailyVal) && (isNaN(endVal) || sourceType === 'daily')) {
+                    endInput.value = start + dailyVal;
+                } else if (!isNaN(start) && !isNaN(endVal) && isNaN(dailyVal)) {
+                    dailyInput.value = Math.max(0, endVal - start);
+                }
+            }
+
             let end = parseFloat(endInput.value);
 
-            if (isOff) {
-                if (!isNaN(start)) endInput.value = start;
-                diffCell.textContent = "0";
+            if (timeInput.value === 'SUNDAY' || timeInput.value === 'SATURDAY') {
+                if (!isNaN(start) && !isNaN(end) && end > start) {
+                    let diff = end - start;
+                    diffCell.textContent = diff;
+                    grandTotal += diff;
+                } else {
+                    diffCell.textContent = "0";
+                }
             } else if (!isNaN(start) && !isNaN(end)) {
                 let diff = Math.max(0, end - start);
                 diffCell.textContent = diff;
@@ -447,7 +493,7 @@
             const vehicle = document.getElementById('vehicleNo').value;
             const month = document.getElementById('rideMonth').value;
             const totalDist = document.getElementById('totalDistance').textContent;
-            const commonTime = document.getElementById('commonRideTime')?.value || '';
+            const defaultTime = document.getElementById('rideTime').value.trim() || '15hr';
 
             // Header Section
             doc.setFont("helvetica", "bold");
@@ -467,40 +513,43 @@
             doc.setLineWidth(0.3);
             doc.line(12, 24, 198, 24);
 
-            // Extract table rows
+            // Extract table rows (Merged TIME column spanning all rows in PDF)
+            const tableData = [];
             const rows = document.querySelectorAll('#sheetBody tr');
             const totalRows = rows.length;
-            const tableData = [];
 
-            rows.forEach((row, idx) => {
+            rows.forEach((row, index) => {
                 const cells = row.querySelectorAll('td');
-                const start = row.querySelector('.start-km')?.value || '';
-                const end = row.querySelector('.end-km')?.value || '';
-                const ot = row.querySelector('.ot-val')?.value || '';
+                const sno = cells[0].textContent;
+                const dateText = cells[1].textContent;
+                const start = row.querySelector('.start-km').value || '';
+                const end = row.querySelector('.end-km').value || '';
+                const kms = cells[5].textContent;
+                const ot = row.querySelector('.ot-val').value || '';
 
-                if (idx === 0) {
+                if (index === 0) {
                     tableData.push([
-                        cells[0].textContent,
-                        cells[1].textContent,
+                        sno,
+                        dateText,
                         start,
                         end,
-                        cells[4].textContent,
-                        { content: commonTime, rowSpan: totalRows, styles: { halign: 'center', valign: 'middle' } },
+                        kms,
+                        { content: defaultTime, rowSpan: totalRows, styles: { halign: 'center', valign: 'middle' } },
                         ot
                     ]);
                 } else {
                     tableData.push([
-                        cells[0].textContent,
-                        cells[1].textContent,
+                        sno,
+                        dateText,
                         start,
                         end,
-                        cells[4].textContent,
+                        kms,
                         ot
                     ]);
                 }
             });
 
-            // Build PDF Table with Centered Alignment & Uniform Styling
+            // Build PDF Table
             doc.autoTable({
                 startY: 26,
                 head: [['SNO', 'DATE', 'START', 'END', 'KMS', 'TIME', 'OT']],
@@ -511,7 +560,6 @@
                     fontSize: 7,
                     cellPadding: 1.1,
                     halign: 'center',
-                    valign: 'middle',
                     textColor: [0, 0, 0],
                     lineColor: [100, 100, 100],
                     lineWidth: 0.1
@@ -519,38 +567,34 @@
                 headStyles: {
                     fillColor: [225, 232, 240],
                     textColor: [0, 0, 0],
-                    fontStyle: 'bold',
-                    halign: 'center',
-                    valign: 'middle'
+                    fontStyle: 'bold'
                 },
                 footStyles: {
                     fillColor: [240, 240, 240],
                     textColor: [0, 0, 0],
-                    fontStyle: 'bold',
-                    halign: 'center',
-                    valign: 'middle'
+                    fontStyle: 'bold'
                 },
                 columnStyles: {
-                    0: { cellWidth: 10, halign: 'center', valign: 'middle' },
-                    1: { cellWidth: 28, halign: 'center', valign: 'middle' },
-                    2: { cellWidth: 23, halign: 'center', valign: 'middle' },
-                    3: { cellWidth: 23, halign: 'center', valign: 'middle' },
-                    4: { cellWidth: 20, fontStyle: 'bold', halign: 'center', valign: 'middle' },
-                    5: { cellWidth: 38, halign: 'center', valign: 'middle' },
-                    6: { cellWidth: 44, halign: 'center', valign: 'middle' }
+                    0: { cellWidth: 8 },
+                    1: { cellWidth: 34 },
+                    2: { cellWidth: 21 },
+                    3: { cellWidth: 21 },
+                    4: { cellWidth: 20, fontStyle: 'bold' },
+                    5: { cellWidth: 36 },
+                    6: { cellWidth: 44 }
                 },
-                margin: { top: 5, bottom: 20, left: 12, right: 12 }
+                margin: { top: 5, bottom: 5, left: 12, right: 12 }
             });
 
-            // Checked By Section
-            const finalY = doc.lastAutoTable.finalY + 8;
+            // "Checked By" Signature Line below table
+            let finalY = doc.lastAutoTable.finalY + 14;
+            if (finalY > 275) {
+                doc.addPage();
+                finalY = 20;
+            }
             doc.setFont("helvetica", "bold");
             doc.setFontSize(9);
-            doc.text("Checked by:", 12, finalY + 5);
-
-            // Draw Text Box / Signature Box
-            doc.setLineWidth(0.3);
-            doc.rect(34, finalY, 55, 8);
+            doc.text("Checked By: _________________________", 198, finalY, { align: "right" });
 
             await downloadForWebAndApp(doc, `Riding_Log_${month}.pdf`);
         } catch (err) {
@@ -565,40 +609,21 @@
         const monthVal = document.getElementById('rideMonth').value;
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Log');
-
         worksheet.addRow([document.getElementById('custName').value]);
-        worksheet.addRow(['SNO', 'DATE', 'START', 'END', 'KMS', 'TIME', 'OT']);
-
-        const commonTime = document.getElementById('commonRideTime')?.value || '';
-        const rows = document.querySelectorAll('#sheetBody tr');
-        const totalRows = rows.length;
-
-        rows.forEach((row, idx) => {
+        worksheet.addRow(['SNO', 'DATE', 'START', 'DAILY RUNNING', 'END', 'KMS', 'TIME', 'OT']);
+        
+        document.querySelectorAll('#sheetBody tr').forEach(row => {
             const cells = row.querySelectorAll('td');
-
             worksheet.addRow([
                 cells[0].textContent,
                 cells[1].textContent,
                 parseFloat(row.querySelector('.start-km').value) || 0,
+                parseFloat(row.querySelector('.daily-km').value) || 0,
                 parseFloat(row.querySelector('.end-km').value) || 0,
-                parseFloat(cells[4].textContent) || 0,
-                idx === 0 ? commonTime : '',
+                parseFloat(cells[5].textContent) || 0,
+                row.querySelector('.ride-time-input').value,
                 row.querySelector('.ot-val').value
             ]);
-        });
-
-        // Merge Time column in Excel
-        if (totalRows > 0) {
-            const startRow = 3;
-            const endRow = 2 + totalRows;
-            worksheet.mergeCells(`F${startRow}:F${endRow}`);
-        }
-
-        // Align all Excel cells horizontally and vertically centered
-        worksheet.eachRow((excelRow) => {
-            excelRow.eachCell((cell) => {
-                cell.alignment = { vertical: 'middle', horizontal: 'center' };
-            });
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
