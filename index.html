@@ -217,7 +217,7 @@
         <div class="form-group"><label>Mobile Number</label><input type="tel" id="custPhone" value="9904755555"></div>
         <div class="form-group"><label>Email Address</label><input type="email" id="custEmail" value="bharat@gmail.com"></div>
         <div class="form-group"><label>ID / Employee No.</label><input type="text" id="custID" value="13"></div>
-        <div class="form-group"><label>Vehicle Number *</label><input type="text" id="vehicleNo" value="GJ 10 Y 5555"></div>
+        <div class="form-group"><label>Vehicle Number *</label><input type="text" id="vehicleNo" value="GJ 10 TY 5555"></div>
         
         <div style="display: flex; gap: 10px; margin-top: 10px;">
             <button class="btn btn-clear" style="width: 35%;" onclick="clearAllData()">Clear All</button>
@@ -343,7 +343,6 @@
             const mm = String(month).padStart(2, '0');
             const formattedDate = `${dd}/${mm}/${year}`;
             
-            // If Off Day: show both date & weekday name. Otherwise: show date only.
             const dateCellText = isOff ? `${formattedDate} (${dayName})` : formattedDate;
 
             const row = document.createElement('tr');
@@ -376,7 +375,6 @@
             const diffCell = row.querySelector('.diff-km');
             const timeInput = row.querySelector('.ride-time-input');
 
-            // Auto cascade start KM from previous day's End KM
             if (idx > 0) {
                 startInput.value = rows[idx - 1].querySelector('.end-km').value || "";
             }
@@ -394,7 +392,6 @@
                 }
             }
 
-            // Sync Daily Running vs End KM based on user actions
             if (triggerInput === dailyInput && row.contains(dailyInput)) {
                 let dailyVal = parseFloat(dailyInput.value);
                 if (!isNaN(start) && !isNaN(dailyVal)) {
@@ -436,7 +433,6 @@
         document.getElementById('totalDistance').textContent = grandTotal;
     }
 
-    // SAFE DUAL DOWNLOAD HANDLER (Web + Mobile App WebView)
     async function downloadForWebAndApp(doc, fileName) {
         const pdfBlob = doc.output('blob');
 
@@ -513,10 +509,11 @@
             doc.setLineWidth(0.3);
             doc.line(12, 24, 198, 24);
 
-            // Extract table rows (Merged TIME column spanning all rows in PDF)
+            // Extract table rows & calculate Total OT
             const tableData = [];
             const rows = document.querySelectorAll('#sheetBody tr');
             const totalRows = rows.length;
+            let totalOT = 0;
 
             rows.forEach((row, index) => {
                 const cells = row.querySelectorAll('td');
@@ -525,7 +522,12 @@
                 const start = row.querySelector('.start-km').value || '';
                 const end = row.querySelector('.end-km').value || '';
                 const kms = cells[5].textContent;
-                const ot = row.querySelector('.ot-val').value || '';
+                const otVal = row.querySelector('.ot-val').value.trim() || '';
+
+                const numericOT = parseFloat(otVal);
+                if (!isNaN(numericOT)) {
+                    totalOT += numericOT;
+                }
 
                 if (index === 0) {
                     tableData.push([
@@ -535,7 +537,7 @@
                         end,
                         kms,
                         { content: defaultTime, rowSpan: totalRows, styles: { halign: 'center', valign: 'middle' } },
-                        ot
+                        otVal
                     ]);
                 } else {
                     tableData.push([
@@ -544,17 +546,19 @@
                         start,
                         end,
                         kms,
-                        ot
+                        otVal
                     ]);
                 }
             });
+
+            const finalOtDisplay = totalOT > 0 ? String(totalOT) : '';
 
             // Build PDF Table
             doc.autoTable({
                 startY: 26,
                 head: [['SNO', 'DATE', 'START', 'END', 'KMS', 'TIME', 'OT']],
                 body: tableData,
-                foot: [['', 'TOTAL DISTANCE', '', '', totalDist, '', '']],
+                foot: [['', 'TOTAL DISTANCE', '', '', totalDist, '', finalOtDisplay]],
                 theme: 'grid',
                 styles: {
                     fontSize: 7,
@@ -581,7 +585,7 @@
                     3: { cellWidth: 21 },
                     4: { cellWidth: 20, fontStyle: 'bold' },
                     5: { cellWidth: 36 },
-                    6: { cellWidth: 44 }
+                    6: { cellWidth: 44, fontStyle: 'bold' }
                 },
                 margin: { top: 5, bottom: 5, left: 12, right: 12 }
             });
