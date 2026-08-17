@@ -14,14 +14,15 @@
         :root {
             --primary: #2563eb;
             --primary-dark: #1d4ed8;
-            --bg: #f1f5f9;
+            --bg: #f8fafc;
             --card: #ffffff;
-            --text: #1e293b;
+            --text: #0f172a;
             --text-muted: #64748b;
             --border: #cbd5e1;
             --off-day-bg: #fef2f2;
             --off-day-text: #dc2626;
             --danger: #ef4444;
+            --focus-ring: #93c5fd;
         }
 
         * {
@@ -41,18 +42,18 @@
         .app-bar {
             background-color: var(--primary);
             color: white;
-            padding: 16px;
+            padding: 14px 16px;
             text-align: center;
-            font-size: 1.2rem;
+            font-size: 1.15rem;
             font-weight: 700;
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
         }
 
         .container {
-            padding: 16px;
+            padding: 12px;
             max-width: 650px;
             margin: 0 auto;
         }
@@ -60,122 +61,172 @@
         .card {
             background: var(--card);
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
             border: 1px solid var(--border);
         }
 
         .card-title {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 700;
             color: var(--primary);
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
-        .form-group { margin-bottom: 14px; }
+        .form-group { margin-bottom: 12px; }
 
         label {
             display: block;
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             font-weight: 600;
             color: var(--text-muted);
-            margin-bottom: 6px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
 
         input, select {
             width: 100%;
-            padding: 12px;
+            padding: 10px 12px;
             border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 0.95rem;
             background-color: #fff;
             color: var(--text);
             outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--focus-ring);
         }
 
         .btn {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             background-color: var(--primary);
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 700;
             cursor: pointer;
-            box-shadow: 0 3px 6px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 3px 6px rgba(37, 99, 235, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
-        .btn-clear { background-color: var(--danger); box-shadow: 0 3px 6px rgba(239, 68, 68, 0.3); }
-        .btn-excel { background-color: #166534; box-shadow: 0 3px 6px rgba(22, 101, 52, 0.3); }
-        .btn-pdf { background-color: #dc2626; box-shadow: 0 3px 6px rgba(220, 38, 38, 0.3); }
+        .btn-clear { background-color: var(--danger); box-shadow: 0 3px 6px rgba(239, 68, 68, 0.25); }
+        .btn-excel { background-color: #166534; box-shadow: 0 3px 6px rgba(22, 101, 52, 0.25); }
+        .btn-pdf { background-color: #dc2626; box-shadow: 0 3px 6px rgba(220, 38, 38, 0.25); }
 
+        /* Responsive Mobile Table Styling */
         .table-responsive {
-            overflow-x: auto;
-            margin-top: 10px;
+            overflow: auto;
+            max-height: 62vh;
             border-radius: 8px;
             border: 1px solid var(--border);
+            background: #fff;
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.03);
+            -webkit-overflow-scrolling: touch;
         }
 
         table {
             width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.82rem;
             white-space: nowrap;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 20;
         }
 
         th {
             background-color: var(--primary);
             color: white;
-            padding: 12px 8px;
-            font-weight: 600;
+            padding: 10px 6px;
+            font-weight: 700;
             text-align: center;
+            font-size: 0.78rem;
+            letter-spacing: 0.4px;
+            border-bottom: 2px solid var(--primary-dark);
         }
 
         td {
-            padding: 8px 6px;
+            padding: 4px;
             border-bottom: 1px solid var(--border);
             text-align: center;
             vertical-align: middle;
+            background-color: #fff;
         }
 
+        /* Fixed optimal widths for seamless mobile entry */
+        th:nth-child(1), td:nth-child(1) { min-width: 36px; width: 36px; }
+        th:nth-child(2), td:nth-child(2) { min-width: 125px; font-weight: 600; font-size: 0.8rem; }
+        th:nth-child(3), td:nth-child(3) { min-width: 80px; }
+        th:nth-child(4), td:nth-child(4) { min-width: 85px; }
+        th:nth-child(5), td:nth-child(5) { min-width: 85px; }
+        th:nth-child(6), td:nth-child(6) { min-width: 60px; font-weight: 700; }
+        th:nth-child(7), td:nth-child(7) { min-width: 80px; }
+        th:nth-child(8), td:nth-child(8) { min-width: 65px; }
+
         td input {
-            padding: 10px 6px;
-            font-size: 0.95rem;
+            padding: 8px 4px;
+            font-size: 0.88rem;
             font-weight: 600;
             text-align: center;
             border-radius: 6px;
             width: 100%;
-            min-height: 42px;
+            height: 38px;
             border: 1px solid #94a3b8;
+            background-color: #ffffff;
         }
 
-        .end-km { min-width: 110px !important; }
-        .daily-km { min-width: 90px !important; background-color: #eff6ff; }
-        .start-km { min-width: 90px; }
-        .readonly-input { background-color: #f1f5f9; color: var(--text-muted); }
-        .off-day-row { background-color: var(--off-day-bg); color: var(--off-day-text); }
-        .off-day-row input { background-color: #fee2e2; color: var(--off-day-text); }
+        td input:focus {
+            background-color: #f0f9ff;
+            border-color: var(--primary);
+        }
+
+        .daily-km { background-color: #eff6ff !important; }
+        .readonly-input { background-color: #f1f5f9 !important; color: var(--text-muted); }
+        .off-day-row td { background-color: var(--off-day-bg); color: var(--off-day-text); }
+        .off-day-row input { background-color: #fee2e2 !important; color: var(--off-day-text); border-color: #fca5a5; }
 
         .summary-card {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             border-radius: 12px;
-            padding: 18px;
+            padding: 14px;
             text-align: center;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+        }
+
+        .summary-card h4 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.9;
         }
 
         .summary-card .val {
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 800;
+            margin-top: 2px;
         }
 
         .action-buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 16px;
+            gap: 10px;
+            margin-top: 12px;
         }
 
         .bottom-nav {
@@ -188,6 +239,7 @@
             justify-content: space-around;
             align-items: center;
             z-index: 9999;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
         }
 
         .nav-item {
@@ -198,10 +250,17 @@
             font-size: 0.75rem;
             color: var(--text-muted);
             cursor: pointer;
+            gap: 2px;
         }
 
         .nav-item.active { color: var(--primary); font-weight: 700; }
         .hidden { display: none !important; }
+
+        @media (max-width: 480px) {
+            .container { padding: 8px; }
+            .card { padding: 12px; margin-bottom: 10px; }
+            td input { height: 36px; font-size: 0.85rem; }
+        }
     </style>
 </head>
 <body>
@@ -214,13 +273,13 @@
         <div class="card-title">1. Driver & Vehicle Info</div>
         <div class="form-group"><label>Full Name *</label><input type="text" id="custName" value="BHARAT BHIMJIBHAI CHAU"></div>
         <div class="form-group"><label>Address</label><input type="text" id="custAddress" value="SHREEJI, SIKKA, DIST. JAMNAGAR"></div>
-        <div class="form-group"><label>Mobile Number</label><input type="tel" id="custPhone" value="9904755555"></div>
+        <div class="form-group"><label>Mobile Number</label><input type="tel" id="custPhone" value="9904733339"></div>
         <div class="form-group"><label>Email Address</label><input type="email" id="custEmail" value="bharat@gmail.com"></div>
         <div class="form-group"><label>ID / Employee No.</label><input type="text" id="custID" value="13"></div>
-        <div class="form-group"><label>Vehicle Number *</label><input type="text" id="vehicleNo" value="GJ 10 TY 5555"></div>
+        <div class="form-group"><label>Vehicle Number *</label><input type="text" id="vehicleNo" value="GJ 10 TY 3355"></div>
         
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button class="btn btn-clear" style="width: 35%;" onclick="clearAllData()">Clear All</button>
+        <div style="display: flex; gap: 10px; margin-top: 14px;">
+            <button class="btn btn-clear" style="width: 35%;" onclick="clearAllData()">Clear</button>
             <button class="btn" style="width: 65%;" onclick="nextStep(2)">Next: Config &gt;</button>
         </div>
     </div>
@@ -240,7 +299,7 @@
         </div>
         <div class="form-group"><label>Starting Kilometer *</label><input type="number" id="initialKm" value="1500"></div>
         
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <div style="display: flex; gap: 10px; margin-top: 14px;">
             <button class="btn" style="background: var(--text-muted); width: 35%;" onclick="nextStep(1)">&lt; Back</button>
             <button class="btn" style="width: 65%;" onclick="generateSheet()">Generate Log</button>
         </div>
@@ -250,15 +309,24 @@
     <div id="step3" class="hidden">
         <div class="summary-card">
             <h4>Total Monthly Distance</h4>
-            <div class="val"><span id="totalDistance">0</span> <span style="font-size: 1.1rem;">KMS</span></div>
+            <div class="val"><span id="totalDistance">0</span> <span style="font-size: 1rem; font-weight: 600;">KMS</span></div>
         </div>
 
-        <div class="card" style="padding: 10px; margin-top: 16px;">
-            <div class="card-title">Monthly Riding Log</div>
+        <div class="card" style="padding: 8px; margin-top: 10px;">
+            <div class="card-title" style="margin-bottom: 8px; padding-left: 4px;">Monthly Riding Log</div>
             <div class="table-responsive">
                 <table>
                     <thead>
-                        <tr><th>SNO</th><th>DATE</th><th>START</th><th>DAILY RUNNING</th><th>END</th><th>KMS</th><th>TIME</th><th>OT</th></tr>
+                        <tr>
+                            <th>SNO</th>
+                            <th>DATE</th>
+                            <th>START</th>
+                            <th>DAILY</th>
+                            <th>END</th>
+                            <th>KMS</th>
+                            <th>TIME</th>
+                            <th>OT</th>
+                        </tr>
                     </thead>
                     <tbody id="sheetBody"></tbody>
                 </table>
@@ -269,7 +337,7 @@
             <button class="btn btn-excel" onclick="exportExcel()">Excel</button>
             <button class="btn btn-pdf" id="pdfBtn" onclick="exportPDF()">Download PDF</button>
         </div>
-        <button class="btn" style="background: var(--text-muted); margin-top: 12px;" onclick="nextStep(2)">&lt; Modify Settings</button>
+        <button class="btn" style="background: var(--text-muted); margin-top: 10px;" onclick="nextStep(2)">&lt; Modify Settings</button>
     </div>
 </div>
 
@@ -383,7 +451,7 @@
 
             if (timeInput.value === 'SUNDAY' || timeInput.value === 'SATURDAY') {
                 if (triggerInput === dailyInput || triggerInput === endInput) {
-                    // allow override if user types explicitly on off days
+                    // allow user override if typed explicitly
                 } else {
                     if (!isNaN(start)) {
                         endInput.value = start;
